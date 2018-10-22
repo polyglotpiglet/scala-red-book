@@ -1,9 +1,9 @@
-package chapter7.part3_fix_problem_with_nonblocking_par
+package chapter7.part5_non_blocking_error_handling
 
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.{Callable, CountDownLatch, ExecutorService, Executors}
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder
+import chapter7.part3_fix_problem_with_nonblocking_par.Actor
 
 trait CatFuture[A] {
   def apply(k: A => Unit): Unit
@@ -20,7 +20,10 @@ object ParPlus {
 
   def eval(es: ExecutorService)(r: => Unit): Unit =
     es.submit(new Callable[Unit] {
-      def call: Unit = r
+      def call: Unit = {
+
+
+      }
     })
 
   def lazyUnit[A](a: => A): Par[A] = fork(unit(a))
@@ -44,12 +47,12 @@ object ParPlus {
   def sequence2[A](l: List[Par[A]]): Par[List[A]] =
     l.foldRight[Par[List[A]]](unit(List()))((h, t) => map2(h, t)(_ :: _))
 
-  def map2[A,B,C](p: Par[A], p2: Par[B])(f: (A,B) => C): Par[C] =
+  def map2[A, B, C](p: Par[A], p2: Par[B])(f: (A, B) => C): Par[C] =
     es => new CatFuture[C] {
       def apply(cb: C => Unit): Unit = {
         var ar: Option[A] = None
         var br: Option[B] = None
-        val combiner = Actor[Either[A,B]](es) {
+        val combiner = Actor[Either[A, B]](es) {
           case Left(a) => br match {
             case None => ar = Some(a)
             case Some(b) => eval(es)(cb(f(a, b)))
@@ -63,6 +66,7 @@ object ParPlus {
         p2(es)(b => combiner ! Right(b))
       }
     }
+
 
 }
 
